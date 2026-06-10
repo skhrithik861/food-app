@@ -17,16 +17,33 @@ const app = express();
 
 
 
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "http://127.0.0.1:5173",
-      "https://frontend-vercel-3ksg.vercel.app",
-    ],
-    credentials: true,
-  })
-);
+// Configure CORS with runtime allowed origins and a dynamic origin checker.
+const allowedOriginsEnv = process.env.ALLOWED_ORIGINS || "";
+const allowedOrigins = allowedOriginsEnv
+  ? allowedOriginsEnv.split(",").map((o) => o.trim())
+  : ["http://localhost:5173", "http://127.0.0.1:5173"];
+
+const corsOptions = {
+  origin: (origin, cb) => {
+    // allow requests with no origin (like mobile apps, curl, or same-origin)
+    if (!origin) return cb(null, true);
+
+    // allow explicit wildcard
+    if (allowedOrigins.indexOf("*") !== -1) return cb(null, true);
+
+    // allow exact matches
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+
+    // allow Vercel deployments (your-frontend.vercel.app)
+    if (origin.endsWith(".vercel.app") || origin.endsWith(".now.sh"))
+      return cb(null, true);
+
+    return cb(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 
 
 
